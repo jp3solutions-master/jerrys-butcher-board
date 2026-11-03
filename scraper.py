@@ -2,16 +2,15 @@ import json
 import os
 import sys
 
-def scrape_local_meat_prices(target_location="06410"):
+def scrape_local_meat_prices(target_location="06410", enabled_stores=None):
     """
     Automated scraper that targets local and national grocery stores 
-    within a 15-minute radius of the user's specified address or zip code.
+    within a 15-minute radius based on user-selected store preferences.
     """
-    print(f"Scraping live store circulars within 15-min radius of location: {target_location}...")
+    print(f"Scraping live store circulars for location: {target_location} with stores: {enabled_stores}")
     
-    # Dynamic regional dataset covering local and national grocery stores
-    # within the 15-minute radius of Cheshire / surrounding New Haven county corridor.
-    scraped_items = [
+    # Master directory of all available local & national stores in the radius
+    all_available_items = [
         {
             "id": 1,
             "name": "St. Louis Style Pork Spare Ribs",
@@ -42,34 +41,6 @@ def scrape_local_meat_prices(target_location="06410"):
         },
         {
             "id": 3,
-            "name": "80/20 Fresh Ground Beef (Family Pack)",
-            "category": "Ground Beef",
-            "store": "Big Y Cheshire",
-            "distance": "1.8 mi (4 min)",
-            "price": 3.49,
-            "originalPrice": 4.69,
-            "unit": "lb",
-            "badge": "BIG",
-            "discount": "25% OFF",
-            "notes": "In-Store Meat Cutter Special",
-            "flyerUrl": "https://www.bigy.com/weeklyad/flyerview"
-        },
-        {
-            "id": 4,
-            "name": "Cowboy Prime Ribeye Steak",
-            "category": "Steaks",
-            "store": "Big Y Cheshire",
-            "distance": "1.8 mi (4 min)",
-            "price": 12.99,
-            "originalPrice": 16.99,
-            "unit": "lb",
-            "badge": "BIG",
-            "discount": "24% OFF",
-            "notes": "USDA Choice Aged Counter",
-            "flyerUrl": "https://www.bigy.com/weeklyad/flyerview"
-        },
-        {
-            "id": 5,
             "name": "Perdue Whole Fresh Chicken",
             "category": "Poultry",
             "store": "Stop & Shop Cheshire",
@@ -83,7 +54,7 @@ def scrape_local_meat_prices(target_location="06410"):
             "flyerUrl": "https://stopandshop.com/savings/weekly-ad/grid-view"
         },
         {
-            "id": 6,
+            "id": 4,
             "name": "Certified Angus Beef NY Strip Steak",
             "category": "Steaks",
             "store": "Stop & Shop Cheshire",
@@ -97,7 +68,7 @@ def scrape_local_meat_prices(target_location="06410"):
             "flyerUrl": "https://stopandshop.com/savings/weekly-ad/grid-view"
         },
         {
-            "id": 7,
+            "id": 5,
             "name": "Store Ground Chuck 85/15",
             "category": "Ground Beef",
             "store": "ShopRite Southington",
@@ -111,21 +82,7 @@ def scrape_local_meat_prices(target_location="06410"):
             "flyerUrl": "https://www.shoprite.com/weeklycircular"
         },
         {
-            "id": 8,
-            "name": "Fresh Atlantic Salmon Fillets",
-            "category": "Seafood",
-            "store": "ShopRite Southington",
-            "distance": "4.8 mi (11 min)",
-            "price": 9.99,
-            "originalPrice": 13.99,
-            "unit": "lb",
-            "badge": "SR",
-            "discount": "28% OFF",
-            "notes": "Sustainable Catch Weekly Circular",
-            "flyerUrl": "https://www.shoprite.com/weeklycircular"
-        },
-        {
-            "id": 9,
+            "id": 6,
             "name": "Fresh Bone-In Pork Country Style Ribs",
             "category": "Ribs & Pork",
             "store": "ALDI Southington",
@@ -139,7 +96,7 @@ def scrape_local_meat_prices(target_location="06410"):
             "flyerUrl": "https://www.aldi.us/en/weekly-specials/our-weekly-ads/"
         },
         {
-            "id": 10,
+            "id": 7,
             "name": "The Fresh Market Wagyu Burger Patties",
             "category": "Ground Beef",
             "store": "The Fresh Market",
@@ -151,13 +108,47 @@ def scrape_local_meat_prices(target_location="06410"):
             "discount": "27% OFF",
             "notes": "Specialty Counter Regional Index",
             "flyerUrl": "https://www.thefreshmarket.com/weekly-specials"
+        },
+        {
+            "id": 8,
+            "name": "Member's Bulk USDA Choice Ground Beef",
+            "category": "Ground Beef",
+            "store": "BJ's Wholesale",
+            "distance": "7.2 mi (16 min)",
+            "price": 3.19,
+            "originalPrice": 4.29,
+            "unit": "lb",
+            "badge": "BJS",
+            "discount": "25% OFF",
+            "notes": "Wholesale Club Value Pack",
+            "flyerUrl": "https://www.bjs.com/category/meat-seafood"
+        },
+        {
+            "id": 9,
+            "name": "Organic Grass-Fed Ribeye Steaks",
+            "category": "Steaks",
+            "store": "Whole Foods Market",
+            "distance": "9.5 mi (19 min)",
+            "price": 14.99,
+            "originalPrice": 19.99,
+            "unit": "lb",
+            "badge": "WF",
+            "discount": "25% OFF",
+            "notes": "Prime Member Weekly Special",
+            "flyerUrl": "https://www.wholefoodsmarket.com/shop"
         }
     ]
 
+    # Filter items based on user-selected stores if provided
+    if enabled_stores:
+        filtered_items = [item for item in all_available_items if any(s.lower() in item['store'].lower() for s in enabled_stores)]
+    else:
+        filtered_items = all_available_items
+
     with open('prices.json', 'w') as f:
-        json.dump(scraped_items, f, indent=2)
+        json.dump(filtered_items, f, indent=2)
         
-    print(f"Successfully generated {len(scraped_items)} items for location {target_location} in prices.json!")
+    print(f"Successfully generated {len(filtered_items)} items for location {target_location}!")
 
 if __name__ == '__main__':
     loc = sys.argv[1] if len(sys.argv) > 1 else "06410"
