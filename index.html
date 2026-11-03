@@ -33,22 +33,53 @@
             const [locationModalOpen, setLocationModalOpen] = useState(false);
             const [customAddressInput, setCustomAddressInput] = useState('');
 
-            // Added Store Selection state & toggle function for User Customization
-            const availableStoresList = [
-                'Big Y', 
-                'Stop & Shop', 
-                'ShopRite', 
-                'ALDI', 
-                'The Fresh Market', 
-                "BJ's Wholesale", 
-                'Whole Foods Market'
-            ];
-            const [selectedStores, setSelectedStores] = useState(availableStoresList);
+            // Store Registry & Custom Store Creation States
+            const [availableStoresList, setAvailableStoresList] = useState([
+                { name: 'Big Y', location: '1021 S Main St, Cheshire, CT', url: 'https://www.bigy.com/weeklyad/flyerview' },
+                { name: 'Stop & Shop', location: 'Cheshire, CT', url: 'https://stopandshop.com/savings/weekly-ad/grid-view' },
+                { name: 'ShopRite', location: 'Southington, CT', url: 'https://www.shoprite.com/weeklycircular' },
+                { name: 'ALDI', location: 'Southington, CT', url: 'https://www.aldi.us/en/weekly-specials/our-weekly-ads/' },
+                { name: 'The Fresh Market', location: 'Guilford, CT', url: 'https://www.thefreshmarket.com/weekly-specials' },
+                { name: "BJ's Wholesale", location: 'Wallingford, CT', url: 'https://www.bjs.com/category/meat-seafood' },
+                { name: 'Whole Foods Market', location: 'Milford, CT', url: 'https://www.wholefoodsmarket.com/shop' }
+            ]);
+
+            const [selectedStores, setSelectedStores] = useState(availableStoresList.map(s => s.name));
+            const [showAddStoreForm, setShowAddStoreForm] = useState(false);
+            const [newStoreName, setNewStoreName] = useState('');
+            const [newStoreLocation, setNewStoreLocation] = useState('');
+            const [newStoreUrl, setNewStoreUrl] = useState('');
 
             const toggleStoreFilter = (storeName) => {
                 setSelectedStores(prev => 
                     prev.includes(storeName) ? prev.filter(s => s !== storeName) : [...prev, storeName]
                 );
+            };
+
+            const handleAddNewStore = (e) => {
+                e.preventDefault();
+                if (!newStoreName.trim()) return;
+
+                const storeObj = {
+                    name: newStoreName.trim(),
+                    location: newStoreLocation.trim() || 'Local Area',
+                    url: newStoreUrl.trim() || 'https://www.google.com'
+                };
+
+                setAvailableStoresList(prev => [...prev, storeObj]);
+                setSelectedStores(prev => [...prev, storeObj.name]);
+                
+                // Reset form
+                setNewStoreName('');
+                setNewStoreLocation('');
+                setNewStoreUrl('');
+                setShowAddStoreForm(false);
+            };
+
+            const removeStoreFromRegistry = (storeName, e) => {
+                e.stopPropagation();
+                setAvailableStoresList(prev => prev.filter(s => s.name !== storeName));
+                setSelectedStores(prev => prev.filter(s => s !== storeName));
             };
 
             const [deals, setDeals] = useState([]);
@@ -208,7 +239,7 @@
                                         onClick={() => { setStoreModalOpen(true); setMenuOpen(false); }}
                                         className="w-full text-left px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2 font-medium"
                                     >
-                                        <span>🛒</span> Manage Active Stores ({selectedStores.length})
+                                        <span>🏪</span> Add / Manage Stores ({availableStoresList.length})
                                     </button>
                                     <button 
                                         onClick={() => { setLocationModalOpen(true); setMenuOpen(false); }}
@@ -252,48 +283,125 @@
                         </div>
                     )}
 
-                    {/* Manage Active Stores Modal */}
+                    {/* Manage & Add Stores Modal */}
                     {storeModalOpen && (
                         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
-                            <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 shadow-2xl">
-                                <div className="text-center mb-4">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-lg p-6 shadow-2xl max-h-[90vh] flex flex-col">
+                                <div className="text-center mb-3">
                                     <div className="w-14 h-14 bg-amber-600/20 border border-amber-500/40 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-2 text-2xl">
                                         🏪
                                     </div>
-                                    <h3 className="text-lg font-bold text-white">Add / Filter Stores</h3>
-                                    <p className="text-slate-400 text-xs mt-1">Select which local & national stores to include in your price scraper.</p>
+                                    <h3 className="text-lg font-bold text-white">Manage & Add Stores</h3>
+                                    <p className="text-slate-400 text-xs mt-0.5">Toggle active stores or add custom locations with scraping URLs.</p>
                                 </div>
 
-                                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 my-4">
-                                    {availableStoresList.map(store => (
-                                        <label 
-                                            key={store}
-                                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold cursor-pointer transition ${
-                                                selectedStores.includes(store)
-                                                    ? 'bg-rose-950/40 border-rose-600/60 text-slate-100'
-                                                    : 'bg-slate-800/40 border-slate-800 text-slate-400'
-                                            }`}
-                                        >
-                                            <span className="flex items-center gap-2">
-                                                <span>{store.includes('Big Y') ? '⭐' : '🛒'}</span>
-                                                <span>{store}</span>
-                                            </span>
+                                {!showAddStoreForm ? (
+                                    <>
+                                        <div className="space-y-2.5 overflow-y-auto pr-1 my-3 flex-1">
+                                            {availableStoresList.map(store => (
+                                                <div 
+                                                    key={store.name}
+                                                    className={`flex items-center justify-between p-3 rounded-xl border text-xs transition ${
+                                                        selectedStores.includes(store.name)
+                                                            ? 'bg-rose-950/40 border-rose-600/60 text-slate-100'
+                                                            : 'bg-slate-800/40 border-slate-800 text-slate-400'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3 flex-1 cursor-pointer" onClick={() => toggleStoreFilter(store.name)}>
+                                                        <span className="text-lg">{store.name.includes('Big Y') ? '⭐' : '🛒'}</span>
+                                                        <div>
+                                                            <div className="font-bold text-slate-100">{store.name}</div>
+                                                            <div className="text-[10px] text-slate-400">{store.location} • <a href={store.url} target="_blank" rel="noopener noreferrer" className="text-amber-400 underline">Link ↗</a></div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-3">
+                                                        <input 
+                                                            type="checkbox"
+                                                            checked={selectedStores.includes(store.name)}
+                                                            onChange={() => toggleStoreFilter(store.name)}
+                                                            className="w-4 h-4 accent-rose-600 rounded cursor-pointer"
+                                                        />
+                                                        <button 
+                                                            onClick={(e) => removeStoreFromRegistry(store.name, e)}
+                                                            className="text-slate-500 hover:text-rose-400 p-1 transition"
+                                                            title="Delete store from list"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-3 border-t border-slate-800 flex gap-2">
+                                            <button 
+                                                onClick={() => setShowAddStoreForm(true)}
+                                                className="flex-1 bg-slate-800 hover:bg-slate-700 text-amber-400 font-semibold py-3 rounded-xl text-xs transition border border-amber-500/30 flex items-center justify-center gap-1.5"
+                                            >
+                                                <span>➕</span> Add New Store
+                                            </button>
+                                            <button 
+                                                onClick={() => setStoreModalOpen(false)}
+                                                className="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl text-xs font-bold transition shadow-lg shadow-rose-900/30"
+                                            >
+                                                Done
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <form onSubmit={handleAddNewStore} className="space-y-3 my-2 flex-1 overflow-y-auto">
+                                        <div className="bg-slate-800/50 p-3 rounded-xl border border-slate-700 text-xs font-semibold text-amber-300">
+                                            Enter details for the new store you want to track and scrape:
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] text-slate-400 mb-1 font-medium">Store Name *</label>
                                             <input 
-                                                type="checkbox"
-                                                checked={selectedStores.includes(store)}
-                                                onChange={() => toggleStoreFilter(store)}
-                                                className="w-4 h-4 accent-rose-600 rounded"
+                                                type="text" 
+                                                placeholder="e.g., Local Butcher Shop" 
+                                                value={newStoreName} 
+                                                onChange={e => setNewStoreName(e.target.value)}
+                                                required
+                                                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-rose-500"
                                             />
-                                        </label>
-                                    ))}
-                                </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] text-slate-400 mb-1 font-medium">Store Location / Town</label>
+                                            <input 
+                                                type="text" 
+                                                placeholder="e.g., Cheshire, CT" 
+                                                value={newStoreLocation} 
+                                                onChange={e => setNewStoreLocation(e.target.value)}
+                                                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-rose-500"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[11px] text-slate-400 mb-1 font-medium">Weekly Ad / Scrape Link (URL)</label>
+                                            <input 
+                                                type="url" 
+                                                placeholder="e.g., https://storewebsite.com/weekly-ad" 
+                                                value={newStoreUrl} 
+                                                onChange={e => setNewStoreUrl(e.target.value)}
+                                                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-rose-500"
+                                            />
+                                        </div>
 
-                                <button 
-                                    onClick={() => setStoreModalOpen(false)}
-                                    className="w-full bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl text-xs font-bold transition shadow-lg shadow-rose-900/30"
-                                >
-                                    Apply Store Preferences
-                                </button>
+                                        <div className="pt-3 border-t border-slate-800 flex gap-2 mt-4">
+                                            <button 
+                                                type="button" 
+                                                onClick={() => setShowAddStoreForm(false)}
+                                                className="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 py-3 rounded-xl text-xs font-semibold transition"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button 
+                                                type="submit"
+                                                className="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl text-xs font-bold transition shadow-lg shadow-rose-900/30"
+                                            >
+                                                Save & Add Store
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
                             </div>
                         </div>
                     )}
@@ -410,7 +518,7 @@
                                         onClick={() => setStoreModalOpen(true)}
                                         className="bg-slate-900 border border-amber-500/40 text-amber-400 hover:bg-slate-800 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1 ml-auto"
                                     >
-                                        <span>⚙️</span> Filter Stores
+                                        <span>⚙️</span> Add / Filter Stores
                                     </button>
                                 </div>
 
