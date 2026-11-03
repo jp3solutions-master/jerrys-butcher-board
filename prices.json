@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "name": "St. Louis Style Pork Spare ribs",
+    "category": "Ribs & Pork",
+    "store": "Big Y Cheshire",
+    "distance": "1.8 mi (4 min)",
+    "price": 2.99,
+    "originalPrice": 4.99,
+    "unit": "lb",
+    "badge": "BIG (4M)",
+    "discount": "40% OFF",
+    "notes": "Live Weekly Circular Verified",
+    "flyerUrl": "https://www.bigy.com/weeklycircular"
+  },
+  {
+    "id": 2,
+    "name": "Bell & Evans Air-Chilled Chicken Cutlets",
+    "category": "Poultry",
+    "store": "Big Y Cheshire",
+    "distance": "1.8 mi (4 min)",
+    "price": 3.99,
+    "originalPrice": 6.49,
+    "unit": "lb",
+    "badge": "BIG (4M)",
+    "discount": "39% OFF",
+    "notes": "Live myBigY Coupon Match",
+    "flyerUrl": "https://www.bigy.com/weeklycircular"
+  }
+]
