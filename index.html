@@ -17,6 +17,14 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
+// Add state for managing user-selected stores
+const [selectedStores, setSelectedStores] = useState(['Big Y', 'Stop & Shop', 'ShopRite', 'ALDI', 'The Fresh Market', 'BJ\'s Wholesale', 'Whole Foods Market']);
+
+const toggleStoreFilter = (storeName) => {
+    setSelectedStores(prev => 
+        prev.includes(storeName) ? prev.filter(s => s !== storeName) : [...prev, storeName]
+    );
+};
 
         function App() {
             const [activeTab, setActiveTab] = useState('deals');
@@ -27,7 +35,6 @@
             const [isScanning, setIsScanning] = useState(false);
             const [scanStatus, setScanStatus] = useState('');
             const [menuOpen, setMenuOpen] = useState(false);
-            
             const [currentLocation, setCurrentLocation] = useState('06410');
             const [locationModalOpen, setLocationModalOpen] = useState(false);
             const [customAddressInput, setCustomAddressInput] = useState('');
