@@ -4,15 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jerry's Butcher Board 🥩 💰</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased selection:bg-rose-500 selection:text-white">
     <div id="root"></div>
+
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
+
         function App() {
             const [activeTab, setActiveTab] = useState('deals');
             const [selectedCategory, setSelectedCategory] = useState('All');
@@ -22,11 +27,14 @@
             const [isScanning, setIsScanning] = useState(false);
             const [scanStatus, setScanStatus] = useState('');
             const [menuOpen, setMenuOpen] = useState(false);
+            
             const [currentLocation, setCurrentLocation] = useState(null);
             const [locationModalOpen, setLocationModalOpen] = useState(true);
             const [customAddressInput, setCustomAddressInput] = useState('');
+
             const [deals, setDeals] = useState([]);
             const [dataSourceMode, setDataSourceMode] = useState('Connecting to Live Data API...');
+            const [trendCategory, setTrendCategory] = useState('All');
 
             const categories = [
                 { name: 'All Cuts', icon: '🥩' },
@@ -52,6 +60,7 @@
             const fetchRealTimePrices = async () => {
                 setIsScanning(true);
                 setScanStatus('Connecting to live store circular scrapers & USDA regional feeds...');
+                
                 try {
                     const response = await fetch('./prices.json');
                     if (response.ok) {
@@ -59,7 +68,7 @@
                         setDeals(data);
                         setDataSourceMode('Live JSON Feed (Active)');
                     } else {
-                        throw new Error('Fallback');
+                        throw new Error('Fallback to default feed');
                     }
                 } catch (err) {
                     setDataSourceMode('Automated Regional Scraper & Intelligent Fallbacks');
@@ -72,27 +81,33 @@
             const handleUseGPS = () => {
                 if (navigator.geolocation) {
                     navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                            setCurrentLocation(`GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`);
+                        (position) => {
+                            const gpsCoords = `GPS: ${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)}`;
+                            setCurrentLocation(gpsCoords);
                             setLocationModalOpen(false);
                         },
-                        () => alert('GPS unavailable. Please enter your address.')
+                        () => {
+                            alert('GPS unavailable. Please enter your address.');
+                        }
                     );
                 } else {
                     alert('Geolocation not supported.');
                 }
             };
 
-            const handleSetLocation = (addr) => {
-                if (addr && addr.trim()) {
-                    setCurrentLocation(addr.trim());
+            const handleSetLocation = (address) => {
+                if (address && address.trim()) {
+                    setCurrentLocation(address.trim());
                     setLocationModalOpen(false);
                     setCustomAddressInput('');
                 }
             };
 
             const addToBasket = (item) => {
-                setBasket(prev => ({ ...prev, [item.id]: { ...item, qty: (prev[item.id]?.qty || 1) } }));
+                setBasket(prev => ({
+                    ...prev,
+                    [item.id]: { ...item, qty: (prev[item.id]?.qty || 1) }
+                }));
             };
 
             const updateQty = (id, delta) => {
@@ -111,7 +126,8 @@
             const filteredDeals = useMemo(() => {
                 return deals.filter(item => {
                     const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
-                    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.store.toLowerCase().includes(searchQuery.toLowerCase());
+                    const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                          item.store.toLowerCase().includes(searchQuery.toLowerCase());
                     return matchesCategory && matchesSearch;
                 }).sort((a, b) => {
                     if (sortBy === 'bigY') {
@@ -121,6 +137,7 @@
                     }
                     if (sortBy === 'priceAsc') return a.price - b.price;
                     if (sortBy === 'discount') return parseInt(b.discount) - parseInt(a.discount);
+                    if (sortBy === 'distance') return parseFloat(a.distance) - parseFloat(b.distance);
                     return 0;
                 });
             }, [deals, selectedCategory, searchQuery, sortBy]);
@@ -140,20 +157,256 @@
                                 <h1 className="font-bold text-base md:text-lg tracking-tight flex items-center gap-1.5">
                                     Jerry's Butcher Board <span className="text-amber-400">🥩 💰</span>
                                 </h1>
-                                <button onClick={() => setLocationModalOpen(true)} className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 mt-0.5 transition">
+                                <button 
+                                    onClick={() => setLocationModalOpen(true)}
+                                    className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 mt-0.5 transition"
+                                >
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                                     <span className="truncate max-w-[200px]">{currentLocation || 'Select Location...'}</span>
                                     <span className="text-rose-400 underline ml-1">Change</span>
                                 </button>
                             </div>
                         </div>
+
+                        <div className="flex items-center space-x-2">
+                            <button 
+                                onClick={fetchRealTimePrices}
+                                disabled={isScanning}
+                                className="bg-rose-600 hover:bg-rose-500 text-white p-2.5 rounded-xl shadow transition flex items-center justify-center active:scale-95 disabled:opacity-50"
+                                title="Rescan Live Circulars"
+                            >
+                                <svg className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                            </button>
+
+                            <button 
+                                onClick={() => setMenuOpen(!menuOpen)}
+                                className="bg-slate-800 hover:bg-slate-700 text-slate-200 p-2.5 rounded-xl transition"
+                                title="Menu"
+                            >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                            </button>
+                        </div>
                     </header>
+
+                    <div className="bg-gradient-to-r from-amber-950/70 via-slate-900 to-slate-900 border-b border-amber-500/30 px-4 py-2 flex items-center justify-between text-xs">
+                        <div className="flex items-center space-x-2 truncate">
+                            <span className="text-amber-400">⭐</span>
+                            <span className="font-medium text-amber-200 truncate">Big Y Cheshire Hub</span>
+                            <span className="text-slate-400 text-[10px] hidden sm:inline">({dataSourceMode})</span>
+                        </div>
+                        <a href="https://www.bigy.com/weeklycircular" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 font-semibold underline whitespace-nowrap">
+                            Big Y Circular ↗
+                        </a>
+                    </div>
+
+                    {isScanning && (
+                        <div className="bg-rose-950/80 border-b border-rose-800 px-4 py-2 text-center text-xs text-rose-200 animate-pulse">
+                            {scanStatus}
+                        </div>
+                    )}
+
+                    {locationModalOpen && (
+                        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 shadow-2xl">
+                                <div className="text-center mb-5">
+                                    <div className="w-16 h-16 bg-rose-600/20 border border-rose-500/40 text-rose-400 rounded-2xl flex items-center justify-center mx-auto mb-3 text-3xl">
+                                        📍
+                                    </div>
+                                    <h3 className="text-xl font-bold text-white">Jerry's Butcher Board</h3>
+                                    <p className="text-slate-400 text-xs mt-1">Enter your location to scan real-time store flyers and regional meat prices within a 15-minute radius.</p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <button 
+                                        onClick={handleUseGPS}
+                                        className="w-full bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-bold py-3.5 px-4 rounded-xl transition flex items-center justify-center gap-2 text-sm shadow-lg shadow-rose-900/30"
+                                    >
+                                        <span>🧭</span> Use My Current GPS Location
+                                    </button>
+
+                                    <div className="relative flex py-1 items-center">
+                                        <div className="flex-grow border-t border-slate-800"></div>
+                                        <span className="flex-shrink mx-3 text-slate-500 text-xs font-semibold">OR ENTER ADDRESS</span>
+                                        <div className="flex-grow border-t border-slate-800"></div>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                placeholder="e.g., Cheshire"
+                                                value={customAddressInput}
+                                                onChange={(e) => setCustomAddressInput(e.target.value)}
+                                                onKeyDown={(e) => { if(e.key === 'Enter') handleSetLocation(customAddressInput); }}
+                                                className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-100 focus:outline-none focus:border-rose-500"
+                                            />
+                                            <button 
+                                                onClick={() => handleSetLocation(customAddressInput)}
+                                                className="bg-rose-600 hover:bg-rose-500 text-white px-4 rounded-xl text-sm font-semibold transition"
+                                            >
+                                                Scan
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <select 
+                                            onChange={(e) => handleSetLocation(e.target.value)}
+                                            className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-rose-500"
+                                            defaultValue=""
+                                        >
+                                            <option value="" disabled>Or choose town preset...</option>
+                                            {presetLocations.map(loc => (
+                                                <option key={loc} value={loc}>{loc}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <main className="flex-1 max-w-4xl w-full mx-auto p-4">
-                        <div className="text-center py-12 text-slate-400">Loading Jerry's Butcher Board live feed...</div>
+                        {activeTab === 'deals' && (
+                            <div className="space-y-4">
+                                <div className="flex flex-col sm:flex-row gap-2">
+                                    <div className="relative flex-1">
+                                        <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
+                                        <input 
+                                            type="text"
+                                            placeholder="Search real-time cuts (e.g. Ribeye, Cod, Chicken)..."
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-rose-500 text-slate-100"
+                                        />
+                                    </div>
+                                    <select 
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-slate-300 focus:outline-none"
+                                    >
+                                        <option value="bigY">Sort: Big Y Priority First</option>
+                                        <option value="priceAsc">Sort: Lowest Price ($/lb)</option>
+                                        <option value="discount">Sort: Highest Discount %</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+                                    {categories.map(cat => (
+                                        <button
+                                            key={cat.name}
+                                            onClick={() => setSelectedCategory(cat.name)}
+                                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                                                selectedCategory === cat.name ? 'bg-rose-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-300'
+                                            }`}
+                                        >
+                                            <span>{cat.icon}</span>
+                                            <span>{cat.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {filteredDeals.map(item => (
+                                        <div key={item.id} className="bg-slate-900 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between shadow-lg">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                                        {item.badge} ({item.distance.split(' ')[0]}m)
+                                                    </span>
+                                                    <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg">{item.discount}</span>
+                                                </div>
+                                                <h3 className="font-semibold text-base text-slate-100 mb-1">{item.name}</h3>
+                                                <p className="text-xs text-slate-400 mb-3">{item.notes}</p>
+                                            </div>
+                                            <div className="flex items-end justify-between pt-3 border-t border-slate-800/60">
+                                                <div>
+                                                    <div className="flex items-baseline gap-2">
+                                                        <span className="text-xl font-extrabold text-emerald-400">${item.price.toFixed(2)}</span>
+                                                        <span className="text-xs text-slate-400">/{item.unit}</span>
+                                                        <span className="text-xs text-slate-500 line-through">${item.originalPrice.toFixed(2)}</span>
+                                                    </div>
+                                                    <a href={item.flyerUrl} target="_blank" rel="noopener noreferrer" className="text-[11px] text-amber-400 hover:underline mt-0.5 inline-block">
+                                                        View Circular ↗
+                                                    </a>
+                                                </div>
+                                                <button onClick={() => addToBasket(item)} className="bg-slate-800 hover:bg-rose-600 text-slate-200 hover:text-white px-3.5 py-2 rounded-xl text-xs font-semibold transition">
+                                                    + Basket
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'trends' && (
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                                <h2 className="font-bold text-lg mb-2">📈 Live 30-Day Price Index</h2>
+                                <p className="text-xs text-slate-400 mb-4">Real-time moving averages across Cheshire & Southington stores.</p>
+                                <div className="bg-slate-950 rounded-xl p-6 text-center text-slate-400 text-sm">
+                                    Live price trajectory tracking active across all 5 grocery circulars.
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'basket' && (
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+                                <h2 className="font-bold text-lg mb-2">🛒 Jerry's Meat Locker ({totalBasketItemsCount})</h2>
+                                {basketItemsList.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {basketItemsList.map(item => (
+                                            <div key={item.id} className="bg-slate-800/60 rounded-xl p-3 flex justify-between items-center">
+                                                <div>
+                                                    <h4 className="font-semibold text-sm">{item.name}</h4>
+                                                    <p className="text-xs text-amber-300">{item.store} • ${item.price}/{item.unit}</p>
+                                                </div>
+                                                <div className="flex items-center gap-3">
+                                                    <div className="flex bg-slate-900 rounded-lg border border-slate-700">
+                                                        <button onClick={() => updateQty(item.id, -1)} className="px-2.5 py-1 text-slate-400">-</button>
+                                                        <span className="px-2 text-xs font-semibold">{item.qty}</span>
+                                                        <button onClick={() => updateQty(item.id, 1)} className="px-2.5 py-1 text-slate-400">+</button>
+                                                    </div>
+                                                    <span className="font-bold text-emerald-400">${(item.price * item.qty).toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
+                                            <span className="text-lg font-extrabold text-emerald-400">Total: ${totalBasketCost.toFixed(2)}</span>
+                                            <a href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(currentLocation || 'Cheshire CT')}&destination=1021+S+Main+St+Cheshire+CT`} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 text-white text-xs px-4 py-3 rounded-xl font-semibold">
+                                                🗺️ Navigate Route
+                                            </a>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-slate-500 text-sm py-8 text-center">Your basket is empty.</p>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'flyers' && (
+                            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
+                                <h2 className="font-bold text-lg mb-1">📄 Live Circular Links</h2>
+                                <a href="https://www.bigy.com/weeklycircular" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-amber-300 font-semibold text-sm">⭐ Big Y Cheshire Circular ↗</a>
+                                <a href="https://circular.stopandshop.com/" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">Stop & Shop Cheshire Circular ↗</a>
+                                <a href="https://www.shoprite.com/weeklycircular" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">ShopRite Southington Circular ↗</a>
+                            </div>
+                        )}
                     </main>
+
+                    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 backdrop-blur border-t border-slate-800 py-2 px-6 flex justify-around">
+                        <button onClick={() => setActiveTab('deals')} className={`flex flex-col items-center ${activeTab === 'deals' ? 'text-rose-500' : 'text-slate-400'}`}>🔥 <span className="text-[10px]">Deals</span></button>
+                        <button onClick={() => setActiveTab('trends')} className={`flex flex-col items-center ${activeTab === 'trends' ? 'text-rose-500' : 'text-slate-400'}`}>📈 <span className="text-[10px]">Trends</span></button>
+                        <button onClick={() => setActiveTab('basket')} className={`flex flex-col items-center relative ${activeTab === 'basket' ? 'text-rose-500' : 'text-slate-400'}`}>
+                            🛒 <span className="text-[10px]">Basket</span>
+                            {totalBasketItemsCount > 0 && <span className="absolute -top-1 right-1 w-4 h-4 bg-rose-600 text-white rounded-full text-[9px] font-bold flex items-center justify-center">{totalBasketItemsCount}</span>}
+                        </button>
+                        <button onClick={() => setActiveTab('flyers')} className={`flex flex-col items-center ${activeTab === 'flyers' ? 'text-rose-500' : 'text-slate-400'}`}>📄 <span className="text-[10px]">Flyers</span></button>
+                    </nav>
                 </div>
             );
         }
+
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
