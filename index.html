@@ -28,13 +28,12 @@
             const [scanStatus, setScanStatus] = useState('');
             const [menuOpen, setMenuOpen] = useState(false);
             
-            const [currentLocation, setCurrentLocation] = useState(null);
-            const [locationModalOpen, setLocationModalOpen] = useState(true);
+            const [currentLocation, setCurrentLocation] = useState('06410');
+            const [locationModalOpen, setLocationModalOpen] = useState(false);
             const [customAddressInput, setCustomAddressInput] = useState('');
 
             const [deals, setDeals] = useState([]);
             const [dataSourceMode, setDataSourceMode] = useState('Connecting to Live Data API...');
-            const [trendCategory, setTrendCategory] = useState('All');
 
             const categories = [
                 { name: 'All Cuts', icon: '🥩' },
@@ -59,7 +58,7 @@
 
             const fetchRealTimePrices = async () => {
                 setIsScanning(true);
-                setScanStatus('Connecting to live store circular scrapers & USDA regional feeds...');
+                setScanStatus('Connecting to live store circular scrapers & regional feeds...');
                 
                 try {
                     const response = await fetch('./prices.json');
@@ -68,7 +67,7 @@
                         setDeals(data);
                         setDataSourceMode('Live JSON Feed (Active)');
                     } else {
-                        throw new Error('Fallback to default feed');
+                        throw new Error('Fallback');
                     }
                 } catch (err) {
                     setDataSourceMode('Automated Regional Scraper & Intelligent Fallbacks');
@@ -86,9 +85,7 @@
                             setCurrentLocation(gpsCoords);
                             setLocationModalOpen(false);
                         },
-                        () => {
-                            alert('GPS unavailable. Please enter your address.');
-                        }
+                        () => alert('GPS unavailable. Please enter your address.')
                     );
                 } else {
                     alert('Geolocation not supported.');
@@ -137,7 +134,6 @@
                     }
                     if (sortBy === 'priceAsc') return a.price - b.price;
                     if (sortBy === 'discount') return parseInt(b.discount) - parseInt(a.discount);
-                    if (sortBy === 'distance') return parseFloat(a.distance) - parseFloat(b.distance);
                     return 0;
                 });
             }, [deals, selectedCategory, searchQuery, sortBy]);
@@ -162,13 +158,13 @@
                                     className="text-xs text-slate-400 hover:text-slate-200 flex items-center gap-1 mt-0.5 transition"
                                 >
                                     <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    <span className="truncate max-w-[200px]">{currentLocation || 'Select Location...'}</span>
+                                    <span className="truncate max-w-[200px]">{currentLocation}</span>
                                     <span className="text-rose-400 underline ml-1">Change</span>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2 relative">
                             <button 
                                 onClick={fetchRealTimePrices}
                                 disabled={isScanning}
@@ -185,6 +181,31 @@
                             >
                                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                             </button>
+
+                            {menuOpen && (
+                                <div className="absolute right-0 top-12 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-50">
+                                    <button 
+                                        onClick={() => { setLocationModalOpen(true); setMenuOpen(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+                                    >
+                                        <span>📍</span> Change Location / Radius
+                                    </button>
+                                    <button 
+                                        onClick={() => { fetchRealTimePrices(); setMenuOpen(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2"
+                                    >
+                                        <span>🔄</span> Refresh Price Data Feed
+                                    </button>
+                                    <a 
+                                        href="https://github.com" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="w-full text-left px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2 block"
+                                    >
+                                        <span>⭐</span> View GitHub Repository
+                                    </a>
+                                </div>
+                            )}
                         </div>
                     </header>
 
@@ -194,7 +215,7 @@
                             <span className="font-medium text-amber-200 truncate">Big Y Cheshire Hub</span>
                             <span className="text-slate-400 text-[10px] hidden sm:inline">({dataSourceMode})</span>
                         </div>
-                        <a href="https://www.bigy.com/weeklycircular" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 font-semibold underline whitespace-nowrap">
+                        <a href="https://www.bigy.com/weeklyad/flyerview" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 font-semibold underline whitespace-nowrap">
                             Big Y Circular ↗
                         </a>
                     </div>
@@ -213,7 +234,7 @@
                                         📍
                                     </div>
                                     <h3 className="text-xl font-bold text-white">Jerry's Butcher Board</h3>
-                                    <p className="text-slate-400 text-xs mt-1">Enter your location to scan real-time store flyers and regional meat prices within a 15-minute radius.</p>
+                                    <p className="text-slate-400 text-xs mt-1">Enter your location to scan real-time store flyers within a 15-minute radius.</p>
                                 </div>
 
                                 <div className="space-y-4">
@@ -234,7 +255,7 @@
                                         <div className="flex gap-2">
                                             <input 
                                                 type="text" 
-                                                placeholder="e.g., Cheshire"
+                                                placeholder="e.g., Your Address"
                                                 value={customAddressInput}
                                                 onChange={(e) => setCustomAddressInput(e.target.value)}
                                                 onKeyDown={(e) => { if(e.key === 'Enter') handleSetLocation(customAddressInput); }}
@@ -261,6 +282,13 @@
                                             ))}
                                         </select>
                                     </div>
+                                    
+                                    <button 
+                                        onClick={() => setLocationModalOpen(false)}
+                                        className="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-xs font-semibold mt-2"
+                                    >
+                                        Close
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -373,7 +401,7 @@
                                         ))}
                                         <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
                                             <span className="text-lg font-extrabold text-emerald-400">Total: ${totalBasketCost.toFixed(2)}</span>
-                                            <a href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(currentLocation || 'Cheshire CT')}&destination=1021+S+Main+St+Cheshire+CT`} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 text-white text-xs px-4 py-3 rounded-xl font-semibold">
+                                            <a href={`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(currentLocation)}&destination=1021+S+Main+St+Cheshire+CT`} target="_blank" rel="noopener noreferrer" className="bg-emerald-600 text-white text-xs px-4 py-3 rounded-xl font-semibold">
                                                 🗺️ Navigate Route
                                             </a>
                                         </div>
@@ -387,8 +415,8 @@
                         {activeTab === 'flyers' && (
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                                 <h2 className="font-bold text-lg mb-1">📄 Live Circular Links</h2>
-                                <a href="https://www.bigy.com/weeklycircular" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-amber-300 font-semibold text-sm">⭐ Big Y Cheshire Circular ↗</a>
-                                <a href="https://circular.stopandshop.com/" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">Stop & Shop Cheshire Circular ↗</a>
+                                <a href="https://www.bigy.com/weeklyad/flyerview" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-amber-300 font-semibold text-sm">⭐ Big Y Cheshire Circular ↗</a>
+                                <a href="https://stopandshop.com/savings/weekly-ad/grid-view" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">Stop & Shop Cheshire Circular ↗</a>
                                 <a href="https://www.shoprite.com/weeklycircular" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">ShopRite Southington Circular ↗</a>
                             </div>
                         )}
