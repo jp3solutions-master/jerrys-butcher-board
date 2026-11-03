@@ -17,14 +17,6 @@
 
     <script type="text/babel">
         const { useState, useEffect, useMemo } = React;
-// Add state for managing user-selected stores
-const [selectedStores, setSelectedStores] = useState(['Big Y', 'Stop & Shop', 'ShopRite', 'ALDI', 'The Fresh Market', 'BJ\'s Wholesale', 'Whole Foods Market']);
-
-const toggleStoreFilter = (storeName) => {
-    setSelectedStores(prev => 
-        prev.includes(storeName) ? prev.filter(s => s !== storeName) : [...prev, storeName]
-    );
-};
 
         function App() {
             const [activeTab, setActiveTab] = useState('deals');
@@ -35,9 +27,29 @@ const toggleStoreFilter = (storeName) => {
             const [isScanning, setIsScanning] = useState(false);
             const [scanStatus, setScanStatus] = useState('');
             const [menuOpen, setMenuOpen] = useState(false);
+            const [storeModalOpen, setStoreModalOpen] = useState(false);
+            
             const [currentLocation, setCurrentLocation] = useState('06410');
             const [locationModalOpen, setLocationModalOpen] = useState(false);
             const [customAddressInput, setCustomAddressInput] = useState('');
+
+            // Added Store Selection state & toggle function for User Customization
+            const availableStoresList = [
+                'Big Y', 
+                'Stop & Shop', 
+                'ShopRite', 
+                'ALDI', 
+                'The Fresh Market', 
+                "BJ's Wholesale", 
+                'Whole Foods Market'
+            ];
+            const [selectedStores, setSelectedStores] = useState(availableStoresList);
+
+            const toggleStoreFilter = (storeName) => {
+                setSelectedStores(prev => 
+                    prev.includes(storeName) ? prev.filter(s => s !== storeName) : [...prev, storeName]
+                );
+            };
 
             const [deals, setDeals] = useState([]);
             const [dataSourceMode, setDataSourceMode] = useState('Connecting to Live Data API...');
@@ -132,7 +144,8 @@ const toggleStoreFilter = (storeName) => {
                     const matchesCategory = selectedCategory === 'All' || item.category === selectedCategory;
                     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                                           item.store.toLowerCase().includes(searchQuery.toLowerCase());
-                    return matchesCategory && matchesSearch;
+                    const matchesStoreFilter = selectedStores.some(storeName => item.store.toLowerCase().includes(storeName.toLowerCase()));
+                    return matchesCategory && matchesSearch && matchesStoreFilter;
                 }).sort((a, b) => {
                     if (sortBy === 'bigY') {
                         if (a.store.includes('Big Y') && !b.store.includes('Big Y')) return -1;
@@ -143,7 +156,7 @@ const toggleStoreFilter = (storeName) => {
                     if (sortBy === 'discount') return parseInt(b.discount) - parseInt(a.discount);
                     return 0;
                 });
-            }, [deals, selectedCategory, searchQuery, sortBy]);
+            }, [deals, selectedCategory, searchQuery, sortBy, selectedStores]);
 
             const basketItemsList = Object.values(basket);
             const totalBasketCost = basketItemsList.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -190,7 +203,13 @@ const toggleStoreFilter = (storeName) => {
                             </button>
 
                             {menuOpen && (
-                                <div className="absolute right-0 top-12 w-56 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-50">
+                                <div className="absolute right-0 top-12 w-60 bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl py-2 z-50">
+                                    <button 
+                                        onClick={() => { setStoreModalOpen(true); setMenuOpen(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2 font-medium"
+                                    >
+                                        <span>🛒</span> Manage Active Stores ({selectedStores.length})
+                                    </button>
                                     <button 
                                         onClick={() => { setLocationModalOpen(true); setMenuOpen(false); }}
                                         className="w-full text-left px-4 py-2.5 text-xs text-slate-200 hover:bg-slate-800 flex items-center gap-2"
@@ -233,6 +252,52 @@ const toggleStoreFilter = (storeName) => {
                         </div>
                     )}
 
+                    {/* Manage Active Stores Modal */}
+                    {storeModalOpen && (
+                        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 shadow-2xl">
+                                <div className="text-center mb-4">
+                                    <div className="w-14 h-14 bg-amber-600/20 border border-amber-500/40 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-2 text-2xl">
+                                        🏪
+                                    </div>
+                                    <h3 className="text-lg font-bold text-white">Add / Filter Stores</h3>
+                                    <p className="text-slate-400 text-xs mt-1">Select which local & national stores to include in your price scraper.</p>
+                                </div>
+
+                                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 my-4">
+                                    {availableStoresList.map(store => (
+                                        <label 
+                                            key={store}
+                                            className={`flex items-center justify-between p-3 rounded-xl border text-xs font-semibold cursor-pointer transition ${
+                                                selectedStores.includes(store)
+                                                    ? 'bg-rose-950/40 border-rose-600/60 text-slate-100'
+                                                    : 'bg-slate-800/40 border-slate-800 text-slate-400'
+                                            }`}
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <span>{store.includes('Big Y') ? '⭐' : '🛒'}</span>
+                                                <span>{store}</span>
+                                            </span>
+                                            <input 
+                                                type="checkbox"
+                                                checked={selectedStores.includes(store)}
+                                                onChange={() => toggleStoreFilter(store)}
+                                                className="w-4 h-4 accent-rose-600 rounded"
+                                            />
+                                        </label>
+                                    ))}
+                                </div>
+
+                                <button 
+                                    onClick={() => setStoreModalOpen(false)}
+                                    className="w-full bg-rose-600 hover:bg-rose-500 text-white py-3 rounded-xl text-xs font-bold transition shadow-lg shadow-rose-900/30"
+                                >
+                                    Apply Store Preferences
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {locationModalOpen && (
                         <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-md p-6 shadow-2xl">
@@ -262,7 +327,7 @@ const toggleStoreFilter = (storeName) => {
                                         <div className="flex gap-2">
                                             <input 
                                                 type="text" 
-                                                placeholder="e.g., Your Address"
+                                                placeholder="e.g., Cheshire, CT"
                                                 value={customAddressInput}
                                                 onChange={(e) => setCustomAddressInput(e.target.value)}
                                                 onKeyDown={(e) => { if(e.key === 'Enter') handleSetLocation(customAddressInput); }}
@@ -326,19 +391,27 @@ const toggleStoreFilter = (storeName) => {
                                     </select>
                                 </div>
 
-                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-                                    {categories.map(cat => (
-                                        <button
-                                            key={cat.name}
-                                            onClick={() => setSelectedCategory(cat.name)}
-                                            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
-                                                selectedCategory === cat.name ? 'bg-rose-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-300'
-                                            }`}
-                                        >
-                                            <span>{cat.icon}</span>
-                                            <span>{cat.name}</span>
-                                        </button>
-                                    ))}
+                                <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
+                                    <div className="flex gap-2">
+                                        {categories.map(cat => (
+                                            <button
+                                                key={cat.name}
+                                                onClick={() => setSelectedCategory(cat.name)}
+                                                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
+                                                    selectedCategory === cat.name ? 'bg-rose-600 text-white' : 'bg-slate-900 border border-slate-800 text-slate-300'
+                                                }`}
+                                            >
+                                                <span>{cat.icon}</span>
+                                                <span>{cat.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <button 
+                                        onClick={() => setStoreModalOpen(true)}
+                                        className="bg-slate-900 border border-amber-500/40 text-amber-400 hover:bg-slate-800 px-3 py-2 rounded-xl text-xs font-semibold whitespace-nowrap flex items-center gap-1 ml-auto"
+                                    >
+                                        <span>⚙️</span> Filter Stores
+                                    </button>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -347,7 +420,7 @@ const toggleStoreFilter = (storeName) => {
                                             <div>
                                                 <div className="flex items-center justify-between mb-2">
                                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                                        {item.badge} ({item.distance.split(' ')[0]}m)
+                                                        {item.badge} ({item.distance ? item.distance.split(' ')[0] : 'Local'})
                                                     </span>
                                                     <span className="text-xs font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg">{item.discount}</span>
                                                 </div>
@@ -378,9 +451,9 @@ const toggleStoreFilter = (storeName) => {
                         {activeTab === 'trends' && (
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
                                 <h2 className="font-bold text-lg mb-2">📈 Live 30-Day Price Index</h2>
-                                <p className="text-xs text-slate-400 mb-4">Real-time moving averages across Cheshire & Southington stores.</p>
+                                <p className="text-xs text-slate-400 mb-4">Real-time moving averages across Cheshire & surrounding stores.</p>
                                 <div className="bg-slate-950 rounded-xl p-6 text-center text-slate-400 text-sm">
-                                    Live price trajectory tracking active across all 5 grocery circulars.
+                                    Live price trajectory tracking active across all selected grocery circulars.
                                 </div>
                             </div>
                         )}
@@ -422,9 +495,9 @@ const toggleStoreFilter = (storeName) => {
                         {activeTab === 'flyers' && (
                             <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 space-y-3">
                                 <h2 className="font-bold text-lg mb-1">📄 Live Circular Links</h2>
-                                <a href="https://www.bigy.com/weeklyad/flyerview" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-amber-300 font-semibold text-sm">⭐ Big Y Cheshire Circular ↗</a>
-                                <a href="https://stopandshop.com/savings/weekly-ad/grid-view" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">Stop & Shop Cheshire Circular ↗</a>
-                                <a href="https://www.shoprite.com/weeklycircular" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">ShopRite Southington Circular ↗</a>
+                                <a href="https://www.bigy.com/weeklyad/flyerview" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-amber-300 font-semibold text-sm">⭐ Big Y Circular ↗</a>
+                                <a href="https://stopandshop.com/savings/weekly-ad/grid-view" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">Stop & Shop Circular ↗</a>
+                                <a href="https://www.shoprite.com/weeklycircular" target="_blank" rel="noopener noreferrer" className="block bg-slate-800 p-3.5 rounded-xl text-slate-200 text-sm">ShopRite Circular ↗</a>
                             </div>
                         )}
                     </main>
